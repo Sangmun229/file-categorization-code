@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>파일 자동 분류 시스템 — 프로젝트 보고서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0E0F14;
+    --bg2:      #14161E;
+    --bg3:      #1C1F2B;
+    --surface:  #21253A;
+    --border:   #2E334D;
+    --accent:   #5B8CFF;
+    --accent2:  #A78BFA;
+    --accent3:  #34D399;
+    --warn:     #F59E0B;
+    --danger:   #F87171;
+    --text:     #E8EAF0;
+    --muted:    #7B82A3;
+    --serif:    'Noto Serif KR', serif;
+    --sans:     'Noto Sans KR', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── 히어로 ── */
+  .hero {
+    position: relative;
+    padding: 100px 0 80px;
+    overflow: hidden;
+    text-align: center;
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: .18;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+  }
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(91,140,255,.18) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(91,140,255,.1);
+    border: 1px solid rgba(91,140,255,.3);
+    padding: .3em 1em;
+    border-radius: 999px;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    color: var(--muted);
+    font-size: 1.05rem;
+    font-weight: 300;
+    letter-spacing: .02em;
+    margin-bottom: 48px;
+  }
+  .meta-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--muted);
+  }
+  .meta-item span { color: var(--text); font-weight: 600; }
+
+  /* ── 레이아웃 ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── 섹션 ── */
+  .section {
+    padding: 72px 0;
+    border-bottom: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .6s ease, transform .6s ease;
+  }
+  .section.visible { opacity: 1; transform: translateY(0); }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--accent);
+    background: rgba(91,140,255,.1);
+    border: 1px solid rgba(91,140,255,.25);
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+  .section-desc {
+    font-size: .82rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-left: auto;
+  }
+
+  p { color: var(--text); font-size: .97rem; margin-bottom: 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── 카드 그리드 ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card-icon { font-size: 1.5rem; margin-bottom: 14px; }
+  .card-title { font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+  .card-text { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+  .card-accent {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .card:hover .card-accent { opacity: 1; }
+
+  /* ── 파일 트리 ── */
+  .file-tree {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    font-family: var(--mono);
+  }
+  .file-tree-header {
+    background: var(--bg3);
+    padding: 12px 20px;
+    font-size: .75rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #FF5F57; }
+  .dot-y { background: #FFBD2E; }
+  .dot-g { background: #28C840; }
+  .file-tree-body { padding: 20px 24px; font-size: .83rem; line-height: 2; }
+  .tree-dir { color: var(--accent); font-weight: 600; }
+  .tree-file { color: var(--muted); }
+  .tree-file .hl { color: var(--text); }
+
+  /* ── 아키텍처 플로우 ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 24px;
+    position: relative;
+  }
+  .flow-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 24px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 8px;
+    transition: border-color .2s;
+  }
+  .flow-item:hover { border-color: var(--accent); }
+  .flow-step {
+    font-family: var(--mono);
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(91,140,255,.1);
+    border: 1px solid rgba(91,140,255,.25);
+    border-radius: 8px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .flow-body { flex: 1; }
+  .flow-title { font-weight: 700; font-size: .95rem; margin-bottom: 4px; }
+  .flow-desc { font-size: .85rem; color: var(--muted); }
+
+  /* ── 스크린샷 영역 ── */
+  .terminal {
+    background: #0D1117;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: .82rem;
+  }
+  .terminal-bar {
+    background: #161B22;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-title { font-size: .72rem; color: var(--muted); margin-left: 8px; }
+  .terminal-body { padding: 20px 24px; line-height: 1.9; }
+  .t-cmd  { color: #79C0FF; }
+  .t-out  { color: #8B949E; }
+  .t-ok   { color: var(--accent3); }
+  .t-warn { color: var(--warn); }
+  .t-hi   { color: var(--text); }
+  .t-acc  { color: var(--accent2); }
+
+  /* ── 결과 폴더 트리 ── */
+  .result-tree {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: .83rem;
+    line-height: 2;
+    margin-top: 20px;
+  }
+  .rt-root { color: var(--accent); font-weight: 700; }
+  .rt-folder { color: var(--accent2); }
+  .rt-count {
+    font-size: .72rem;
+    background: rgba(167,139,250,.1);
+    border: 1px solid rgba(167,139,250,.2);
+    color: var(--accent2);
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+  .rt-file { color: var(--muted); }
+
+  /* ── 특장점 ── */
+  .strength-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  @media (max-width: 600px) { .strength-list { grid-template-columns: 1fr; } }
+  .strength-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent3);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-size: .9rem;
+  }
+  .strength-item strong { display: block; font-size: .92rem; margin-bottom: 4px; }
+  .strength-item span { color: var(--muted); font-size: .83rem; }
+
+  /* ── 한계점 ── */
+  .limit-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .limit-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--danger);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: .88rem;
+  }
+  .limit-icon { color: var(--danger); flex-shrink: 0; margin-top: 2px; }
+  .limit-text strong { display: block; margin-bottom: 2px; }
+  .limit-text span { color: var(--muted); font-size: .82rem; }
+
+  /* ── Todo ── */
+  .todo-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .todo-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: .88rem;
+    transition: border-color .2s;
+  }
+  .todo-item:hover { border-color: var(--accent2); }
+  .todo-check {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .todo-pri {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: .68rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .pri-h { background: rgba(248,113,113,.1); color: var(--danger); border: 1px solid rgba(248,113,113,.2); }
+  .pri-m { background: rgba(245,158,11,.1); color: var(--warn); border: 1px solid rgba(245,158,11,.2); }
+  .pri-l { background: rgba(52,211,153,.1); color: var(--accent3); border: 1px solid rgba(52,211,153,.2); }
+
+  /* ── 푸터 ── */
+  footer {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+    font-size: .8rem;
+    font-family: var(--mono);
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── 애니메이션 ── */
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero > * { animation: fadeSlide .8s ease both; }
+  .hero .badge   { animation-delay: .1s; }
+  .hero h1       { animation-delay: .2s; }
+  .hero-sub      { animation-delay: .3s; }
+  .meta-row      { animation-delay: .4s; }
+
+  /* ── 인라인 코드 ── */
+  code {
+    font-family: var(--mono);
+    font-size: .82em;
+    background: rgba(91,140,255,.1);
+    border: 1px solid rgba(91,140,255,.15);
+    padding: .1em .45em;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<!-- 히어로 -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="container" style="position:relative">
+    <div class="badge">Project Report · 2026</div>
+    <h1>파일 자동 분류 시스템</h1>
+    <p class="hero-sub">AI 기반 파일 이름 및 내용 분석으로 자동 정리하는 Python 프로그램</p>
+    <div class="meta-row">
+      <div class="meta-item">언어 <span>Python 3.8+</span></div>
+      <div class="meta-item">파일 수 <span>5개 모듈</span></div>
+      <div class="meta-item">분류 방식 <span>규칙 기반 + Claude AI</span></div>
+      <div class="meta-item">플랫폼 <span>Windows</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 1. 기획 -->
+  <section class="section" id="s1">
+    <div class="section-label">
+      <div class="section-num">01</div>
+      <h2 class="section-title">기획</h2>
+      <div class="section-desc">어떤 문제를 왜 해결하려 했는가</div>
+    </div>
+    <p>
+      바탕화면과 다운로드 폴더에 수백 개의 파일이 무분별하게 쌓이는 것은 대부분의 PC 사용자가 겪는 공통적인 문제입니다.
+      파일을 직접 하나씩 분류하려면 시간이 오래 걸리고, 분류 기준도 일관되지 않습니다.
+    </p>
+    <p>
+      이 프로젝트는 <strong>파일 이름과 파일 내용을 동시에 분석</strong>하여 관련된 파일끼리 자동으로 묶어주는 Python 프로그램을 개발하는 것을 목표로 했습니다.
+      실수를 방지하기 위한 미리보기 기능과, 잘못 이동된 경우를 대비한 되돌리기 기능까지 포함하여 안전성을 높였습니다.
+    </p>
+    <p>
+      특히 바탕화면·다운로드 폴더 외에도 사용자가 <strong>임의의 경로를 직접 지정</strong>할 수 있고,
+      하위 폴더부터 상위 폴더 순으로 처리하는 재귀 구조를 채택하여 중첩된 폴더 구조도 깔끔하게 정리할 수 있도록 설계했습니다.
+    </p>
+    <div class="card-grid" style="margin-top:28px">
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">🗂️</div>
+        <div class="card-title">해결하려는 문제</div>
+        <div class="card-text">수백 개 파일이 뒤섞인 바탕화면·다운로드 폴더를 수동으로 정리하는 비효율</div>
+      </div>
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">🎯</div>
+        <div class="card-title">핵심 목표</div>
+        <div class="card-text">이름·내용 분석 기반 자동 분류, 미리보기·실행취소로 안전성 확보</div>
+      </div>
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">👤</div>
+        <div class="card-title">대상 사용자</div>
+        <div class="card-text">파일 정리에 어려움을 느끼는 일반 Windows 사용자 전반</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 구성물 -->
+  <section class="section" id="s2">
+    <div class="section-label">
+      <div class="section-num">02</div>
+      <h2 class="section-title">구성물</h2>
+      <div class="section-desc">주요 기능 목록</div>
+    </div>
+    <p>총 5개의 Python 모듈로 구성되며, 각 모듈은 단일 책임 원칙에 따라 분리되어 있습니다.</p>
+    <div class="file-tree" style="margin-top:20px">
+      <div class="file-tree-header">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <span class="terminal-title">file_classifier/</span>
+      </div>
+      <div class="file-tree-body">
+        <div><span class="tree-dir">📁 file_classifier/</span></div>
+        <div>&nbsp;&nbsp;├── <span class="tree-file"><span class="hl">main.py</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # 진입점 — 명령어 처리 및 전체 흐름 제어</span></div>
+        <div>&nbsp;&nbsp;├── <span class="tree-file"><span class="hl">file_scanner.py</span> &nbsp;&nbsp;&nbsp; # 재귀 탐색 — 하위→상위 파일 수집 및 내용 추출</span></div>
+        <div>&nbsp;&nbsp;├── <span class="tree-file"><span class="hl">ai_classifier.py</span> &nbsp;&nbsp; # 분류 엔진 — 규칙 기반 + Claude API 분류</span></div>
+        <div>&nbsp;&nbsp;├── <span class="tree-file"><span class="hl">folder_manager.py</span> &nbsp; # 실행 — 폴더 생성·파일 이동·롤백 로그</span></div>
+        <div>&nbsp;&nbsp;└── <span class="tree-file"><span class="hl">reporter.py</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # 출력 — 미리보기 트리 및 완료 보고서</span></div>
+      </div>
+    </div>
+    <div class="flow" style="margin-top:20px">
+      <div class="flow-item">
+        <div class="flow-step">SCAN</div>
+        <div class="flow-body">
+          <div class="flow-title">재귀 파일 탐색</div>
+          <div class="flow-desc"><code>os.walk(topdown=False)</code>로 하위 폴더부터 순차 처리. 텍스트·PDF·docx 내용 앞 600자 샘플 추출. 숨김 파일·시스템 폴더 자동 제외.</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-step">CLASSIFY</div>
+        <div class="flow-body">
+          <div class="flow-title">AI + 규칙 기반 분류</div>
+          <div class="flow-desc">13개 사전 정의 카테고리(확장자·키워드 가중치 기반). API 키가 있으면 Claude로 파일 내용까지 의미 분석. 파일명 토큰 유사도 보조 클러스터링.</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-step">PREVIEW</div>
+        <div class="flow-body">
+          <div class="flow-title">미리보기 출력</div>
+          <div class="flow-desc">분류 계획을 트리 형태로 출력. <code>--dry-run</code> 옵션으로 실제 파일 이동 없이 결과만 확인 가능.</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-step">EXECUTE</div>
+        <div class="flow-body">
+          <div class="flow-title">폴더 생성 및 파일 이동</div>
+          <div class="flow-desc">사용자 확인 후 바탕화면에 날짜별 폴더 생성. 이름 충돌 자동 처리. 이동 기록을 JSON 로그로 저장 → <code>--undo</code>로 원복.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 실현 방법 -->
+  <section class="section" id="s3">
+    <div class="section-label">
+      <div class="section-num">03</div>
+      <h2 class="section-title">실현 방법</h2>
+      <div class="section-desc">사용 기술, AI 도구 활용 과정</div>
+    </div>
+    <p>
+      순수 Python 표준 라이브러리(<code>os</code>, <code>shutil</code>, <code>pathlib</code>, <code>argparse</code>)를 중심으로 구현하여
+      별도 프레임워크 없이 Windows 환경에서 바로 실행 가능하도록 했습니다.
+    </p>
+    <p>
+      AI 분류는 <strong>Anthropic Claude API</strong>(<code>claude-sonnet-4-20250514</code>)를 활용했습니다.
+      파일 이름·타입·내용 샘플을 JSON으로 묶어 80개씩 배치 전송하고,
+      모델이 카테고리명과 설명을 JSON으로 반환하면 이를 파싱하여 폴더 구조에 반영합니다.
+      API 키가 없는 환경에서는 확장자·키워드 가중치 기반 규칙 엔진으로 자동 폴백됩니다.
+    </p>
+    <p>
+      개발 전반은 <strong>Claude(Anthropic)</strong>와의 대화를 통해 계획 수립 → 모듈별 코드 작성 → 사용 설명서 자동 생성까지 진행했습니다.
+    </p>
+    <div class="card-grid" style="margin-top:24px">
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">🐍</div>
+        <div class="card-title">Python 3.8+</div>
+        <div class="card-text">표준 라이브러리 중심 구현. <code>chardet</code>, <code>pypdf</code>, <code>python-docx</code> 선택적 사용.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">🤖</div>
+        <div class="card-title">Claude API</div>
+        <div class="card-text">Anthropic claude-sonnet으로 파일 의미 분석. API 없을 때는 규칙 기반 폴백 자동 적용.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">📐</div>
+        <div class="card-title">설계 원칙</div>
+        <div class="card-text">단일 책임 원칙 5개 모듈 분리. bottom-up 재귀 탐색. JSON 롤백 로그.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent"></div>
+        <div class="card-icon">🛡️</div>
+        <div class="card-title">안전 장치</div>
+        <div class="card-text">dry-run 미리보기, 사용자 확인 프롬프트, --undo 1회 복원, 이름 충돌 자동 번호 부여.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 결과 -->
+  <section class="section" id="s4">
+    <div class="section-label">
+      <div class="section-num">04</div>
+      <h2 class="section-title">결과</h2>
+      <div class="section-desc">완성된 프로그램 시연</div>
+    </div>
+    <p>아래는 실제 실행 흐름과 분류 결과 폴더 구조입니다.</p>
+
+    <div class="terminal" style="margin-top:20px">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <span class="terminal-title">명령 프롬프트 — python main.py --dry-run</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-cmd">C:\Users\홍길동\file_classifier&gt;</span> <span class="t-hi">python main.py --dry-run</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-ok">============================================================</span></div>
+        <div><span class="t-ok">   📁 파일 자동 분류 시스템</span></div>
+        <div><span class="t-ok">   AI 기반 파일 이름 및 내용 분석으로 자동 정리</span></div>
+        <div><span class="t-ok">============================================================</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-out">기본 경로 사용:</span></div>
+        <div><span class="t-out">  📂 C:\Users\홍길동\Desktop</span></div>
+        <div><span class="t-out">  📂 C:\Users\홍길동\Downloads</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-warn">🔍 파일 스캔 중...</span></div>
+        <div><span class="t-out">  📂 스캔: C:\Users\홍길동\Desktop</span></div>
+        <div><span class="t-out">    → 43개 파일</span></div>
+        <div><span class="t-out">  📂 스캔: C:\Users\홍길동\Downloads</span></div>
+        <div><span class="t-out">    → 87개 파일</span></div>
+        <div><span class="t-out">  총 130개 파일 발견</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-out">📋 규칙 기반 분류 중...</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-hi">───────────────────────────────────────────────────────</span></div>
+        <div><span class="t-hi">[미리보기] 총 130개 파일 → 8개 폴더</span></div>
+        <div><span class="t-hi">───────────────────────────────────────────────────────</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-acc">📂 C:\Users\홍길동\Desktop\정리됨_20260409</span></div>
+        <div><span class="t-out">   ├── 📁 문서_보고서/ &nbsp;&nbsp;(34개)</span></div>
+        <div><span class="t-out">   │   ├── 2025_연간보고서.pdf &nbsp;[2.3 MB]</span></div>
+        <div><span class="t-out">   │   ├── 프로젝트_제안서.docx &nbsp;[890 KB]</span></div>
+        <div><span class="t-out">   │   └── ... 외 32개</span></div>
+        <div><span class="t-out">   ├── 📁 이미지_사진/ &nbsp;&nbsp;(28개)</span></div>
+        <div><span class="t-out">   ├── 📁 개발_코드/ &nbsp;&nbsp;&nbsp;&nbsp;(19개)</span></div>
+        <div><span class="t-out">   ├── 📁 스프레드시트_데이터/ (15개)</span></div>
+        <div><span class="t-out">   └── ... 4개 폴더 더</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-out">[미리보기 모드] 실제 파일 이동은 수행되지 않았습니다.</span></div>
+      </div>
+    </div>
+
+    <div class="result-tree">
+      <div><span class="rt-root">📂 정리됨_20260409/</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 문서_보고서/</span><span class="rt-count">34개</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 이미지_사진/</span><span class="rt-count">28개</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 개발_코드/</span><span class="rt-count">19개</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 스프레드시트_데이터/</span><span class="rt-count">15개</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 프레젠테이션/</span><span class="rt-count">9개</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 압축_아카이브/</span><span class="rt-count">8개</span></div>
+      <div>&nbsp;&nbsp;├── <span class="rt-folder">📁 영수증_금융/</span><span class="rt-count">6개</span></div>
+      <div>&nbsp;&nbsp;└── <span class="rt-folder">📁 기타/</span><span class="rt-count">11개</span></div>
+    </div>
+  </section>
+
+  <!-- 5. 특장점 -->
+  <section class="section" id="s5">
+    <div class="section-label">
+      <div class="section-num">05</div>
+      <h2 class="section-title">특장점</h2>
+      <div class="section-desc">이 프로그램만의 강점</div>
+    </div>
+    <p>단순 확장자 분류를 넘어, 파일 내용까지 분석하는 다층적 접근으로 정확도를 높였습니다.</p>
+    <div class="strength-list">
+      <div class="strength-item">
+        <strong>🔁 bottom-up 재귀 처리</strong>
+        <span>하위 폴더 파일을 먼저 정리한 뒤 상위 폴더로 올라오는 구조로, 중첩 폴더도 빠짐없이 정리.</span>
+      </div>
+      <div class="strength-item">
+        <strong>🛡️ dry-run 미리보기</strong>
+        <span>실제 파일 이동 없이 분류 계획 전체를 먼저 확인 가능. 실수 방지의 핵심 기능.</span>
+      </div>
+      <div class="strength-item">
+        <strong>↩️ 1회 실행 취소</strong>
+        <span>JSON 로그 기반으로 마지막 작업을 취소하고 모든 파일을 원래 위치로 복원.</span>
+      </div>
+      <div class="strength-item">
+        <strong>🤖 AI 폴백 구조</strong>
+        <span>API 키가 없어도 규칙 기반 분류가 자동 활성화 — 오프라인에서도 완전히 동작.</span>
+      </div>
+      <div class="strength-item">
+        <strong>📂 경로 자유 지정</strong>
+        <span>바탕화면·다운로드 기본값 외에 여러 경로를 동시에 지정하여 한 번에 처리 가능.</span>
+      </div>
+      <div class="strength-item">
+        <strong>📄 내용 기반 분류</strong>
+        <span>텍스트·PDF·Word 파일의 앞부분을 읽어 이름만으론 파악하기 어려운 파일도 정확히 분류.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. 한계점 -->
+  <section class="section" id="s6">
+    <div class="section-label">
+      <div class="section-num">06</div>
+      <h2 class="section-title">한계점</h2>
+      <div class="section-desc">현재 버전의 한계</div>
+    </div>
+    <p>초기 버전으로서 아래와 같은 한계가 존재하며, 향후 개선 계획에 반영되었습니다.</p>
+    <div class="limit-list">
+      <div class="limit-item">
+        <div class="limit-icon">⚠</div>
+        <div class="limit-text">
+          <strong>되돌리기 1회 제한</strong>
+          <span>현재 롤백은 가장 마지막 실행 1회만 지원. 여러 번 실행한 경우 이전 작업은 수동 복원 필요.</span>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">⚠</div>
+        <div class="limit-text">
+          <strong>이미지·동영상 내용 분석 불가</strong>
+          <span>이미지·영상 파일은 내용 분석 없이 확장자만으로 분류. 스크린샷과 사진이 같은 폴더로 묶일 수 있음.</span>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">⚠</div>
+        <div class="limit-text">
+          <strong>분류 카테고리 하드코딩</strong>
+          <span>13개 기본 카테고리는 코드에 고정되어 있어, 사용자가 직접 수정하려면 파이썬 파일을 편집해야 함.</span>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">⚠</div>
+        <div class="limit-text">
+          <strong>GUI 없음</strong>
+          <span>커맨드라인 전용으로, Python 및 명령 프롬프트에 익숙하지 않은 사용자에게는 진입 장벽이 존재.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Todo -->
+  <section class="section" id="s7">
+    <div class="section-label">
+      <div class="section-num">07</div>
+      <h2 class="section-title">Todo</h2>
+      <div class="section-desc">향후 개선 방향</div>
+    </div>
+    <p>한계점을 보완하고 사용성을 높이기 위한 다음 개발 계획입니다.</p>
+    <div class="todo-list">
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>GUI 인터페이스 추가 — tkinter 또는 PyQt 기반 드래그앤드롭 UI</span>
+        <div class="todo-pri pri-h">HIGH</div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>사용자 커스텀 카테고리 설정 파일(YAML/JSON) 지원</span>
+        <div class="todo-pri pri-h">HIGH</div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>이미지 분류 개선 — Vision AI로 이미지 내용 분석(스크린샷 vs 사진 등)</span>
+        <div class="todo-pri pri-m">MED</div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>다중 실행 취소(히스토리 스택) — 여러 단계 롤백 지원</span>
+        <div class="todo-pri pri-m">MED</div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>중복 파일 탐지 및 삭제 제안 기능</span>
+        <div class="todo-pri pri-m">MED</div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>macOS / Linux 크로스 플랫폼 지원</span>
+        <div class="todo-pri pri-l">LOW</div>
+      </div>
+      <div class="todo-item">
+        <div class="todo-check"></div>
+        <span>스케줄러 연동 — 정해진 시간마다 자동 실행</span>
+        <div class="todo-pri pri-l">LOW</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  파일 자동 분류 시스템 — 프로젝트 보고서 · 2026년 4월<br>
+  Python 3.8+ · Claude API (Anthropic) · 5 modules · Windows
+</footer>
+
+<script>
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.section').forEach(s => io.observe(s));
+</script>
+
+</body>
+</html>
